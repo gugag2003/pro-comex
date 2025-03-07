@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Layers,
   Menu,
+  User,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -47,7 +48,7 @@ export function Sidebar() {
         {collapsed ? <Menu /> : <ChevronLeft />}
       </Button>
 
-      <div className="flex flex-col gap-2 px-2 py-4">
+      <div className="flex flex-col gap-2 px-2 py-4 flex-grow">
         {routes.map((route) => (
           <Link
             key={route.href}
@@ -63,6 +64,21 @@ export function Sidebar() {
             {!collapsed && <span>{route.label}</span>}
           </Link>
         ))}
+      </div>
+
+      <div className="mt-auto px-2 pb-4">
+        <Link
+          href="/perfil"
+          className={cn(
+            "flex items-center gap-x-2 text-sm font-medium px-3 py-2 rounded-md transition-colors",
+            pathname === "/perfil"
+              ? "bg-emerald-900/50 text-emerald-500"
+              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+          )}
+        >
+          <User className="w-5 h-5" />
+          {!collapsed && <span>Perfil</span>}
+        </Link>
       </div>
     </div>
   );

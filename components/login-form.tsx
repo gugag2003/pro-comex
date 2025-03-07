@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import Cookies from 'js-cookie';
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -39,11 +40,16 @@ export default function LoginForm() {
       }
       
       // Login bem-sucedido
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // Armazenar token em cookie seguro
+      Cookies.set('authToken', data.token, {
+        expires: 7, // expira em 7 dias
+        secure: true, // apenas HTTPS
+        sameSite: 'strict'
+      });
       
-      // Redirecionar para o dashboard
-      router.push("/dashboard");
+      // Redirecionar para a página inicial
+      router.push("/");
+      router.refresh(); // Força atualização para aplicar o novo estado de autenticação
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro durante o login");
     } finally {

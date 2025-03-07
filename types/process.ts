@@ -1,4 +1,4 @@
-export type ProcessType = {
+export interface ProcessType {
     id: string;
     referencia: string;
     tipo: "importacao" | "exportacao";
@@ -8,6 +8,7 @@ export type ProcessType = {
     fornecedor: string;
     referenciaCliente: string;
     modal: "maritimo" | "aereo" | "rodoviario";
-    status: "aguardando-embarque" | "em-transito" | "aguardando-registro" | "registrar-di" | "aguardando-fechamento" | "encerrados";
+    status: string;
     dataCriacao: string;
-  };
+    agenteCargas?: string;
+}

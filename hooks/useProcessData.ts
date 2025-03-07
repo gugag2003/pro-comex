@@ -5,17 +5,45 @@ import { ProcessType } from "@/types/process";
 // Função auxiliar para salvar no localStorage
 const saveToLocalStorage = (key: string, data: any) => {
   if (typeof window !== "undefined") {
-    localStorage.setItem(key, JSON.stringify(data));
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error("Erro ao salvar no localStorage:", error);
+    }
   }
 };
 
 // Função auxiliar para carregar do localStorage
 const loadFromLocalStorage = (key: string) => {
   if (typeof window !== "undefined") {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error("Erro ao carregar do localStorage:", error);
+      return null;
+    }
   }
   return null;
+};
+
+// Função para validar e corrigir um processo
+const validarProcesso = (processo: ProcessType): ProcessType => {
+  return {
+    ...processo,
+    id: processo.id || `processo-${Date.now()}`,
+    status: processo.status || "aguardando-embarque",
+    dataCriacao: processo.dataCriacao || new Date().toISOString(),
+    tipo: processo.tipo || "importacao",
+    modal: processo.modal || "maritimo",
+    referencia: processo.referencia || "",
+    adquirente: processo.adquirente || "",
+    fornecedor: processo.fornecedor || "",
+    referenciaCliente: processo.referenciaCliente || "",
+    importador: processo.tipo === "importacao" ? (processo.importador || "") : undefined,
+    exportador: processo.tipo === "exportacao" ? (processo.exportador || "") : undefined,
+    agenteCargas: processo.agenteCargas || ""
+  };
 };
 
 export function useProcessData() {
@@ -24,8 +52,12 @@ export function useProcessData() {
   // Carrega os dados do localStorage na inicialização
   useEffect(() => {
     const dadosSalvos = loadFromLocalStorage("processos");
-    if (dadosSalvos) {
-      setProcessos(dadosSalvos);
+    if (dadosSalvos && Array.isArray(dadosSalvos)) {
+      // Garante que todos os processos tenham dados válidos
+      const processosValidados = dadosSalvos.map(validarProcesso);
+      setProcessos(processosValidados);
+      // Salva os dados validados de volta no localStorage
+      saveToLocalStorage("processos", processosValidados);
     } else {
       // Dados iniciais para demonstração
       const dadosIniciais: ProcessType[] = [
@@ -74,15 +106,17 @@ export function useProcessData() {
 
   // Função para adicionar um novo processo
   const adicionarProcesso = (novoProcesso: ProcessType) => {
-    const processosAtualizados = [...processos, novoProcesso];
+    const processoValidado = validarProcesso(novoProcesso);
+    const processosAtualizados = [...processos, processoValidado];
     setProcessos(processosAtualizados);
     saveToLocalStorage("processos", processosAtualizados);
   };
 
   // Função para atualizar um processo existente
   const atualizarProcesso = (processoAtualizado: ProcessType) => {
+    const processoValidado = validarProcesso(processoAtualizado);
     const processosAtualizados = processos.map(processo => 
-      processo.id === processoAtualizado.id ? processoAtualizado : processo
+      processo.id === processoValidado.id ? processoValidado : processo
     );
     setProcessos(processosAtualizados);
     saveToLocalStorage("processos", processosAtualizados);
@@ -99,7 +133,8 @@ export function useProcessData() {
   const atualizarStatusProcesso = (id: string, novoStatus: string) => {
     const processosAtualizados = processos.map(processo => {
       if (processo.id === id) {
-        return { ...processo, status: novoStatus };
+        const processoAtualizado = { ...processo, status: novoStatus };
+        return validarProcesso(processoAtualizado);
       }
       return processo;
     });

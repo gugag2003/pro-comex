@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rotas que estarão protegidas
-const protectedRoutes = ['/dashboard', '/processos', '/clientes'];
+const protectedRoutes = ['/', '/dashboard', '/processos', '/clientes'];
 
 // Rotas públicas que não precisam de autenticação
 const publicRoutes = ['/login', '/cadastro', '/recuperar-senha'];

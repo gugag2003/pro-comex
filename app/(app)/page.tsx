@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProcessData } from "@/hooks/useProcessData";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,33 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProcessType } from "@/types/process";
+
+interface ColunaType {
+  id: string;
+  title: string;
+  items: ProcessType[];
+}
+
+interface ColunasType {
+  [key: string]: ColunaType;
+}
 
 export default function FluxoPage() {
   const { processos, atualizarStatusProcesso, atualizarProcesso } = useProcessData();
-  const [processoSelecionado, setProcessoSelecionado] = useState(null);
+  const [processoSelecionado, setProcessoSelecionado] = useState<ProcessType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [agenteCargas, setAgenteCargas] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const colunas = {
+  useEffect(() => {
+    // Aguardar os dados serem carregados
+    if (processos.length > 0) {
+      setLoading(false);
+    }
+  }, [processos]);
+
+  const colunas: ColunasType = {
     "aguardando-embarque": {
       id: "aguardando-embarque",
       title: "Aguardando Embarque",
@@ -41,6 +60,11 @@ export default function FluxoPage() {
     "registrar-di": {
       id: "registrar-di",
       title: "Registrar DI",
+      items: [],
+    },
+    "aguardando-canal": {
+      id: "aguardando-canal",
+      title: "Aguardando Canal",
       items: [],
     },
     "aguardando-fechamento": {
@@ -65,7 +89,7 @@ export default function FluxoPage() {
     }
   });
 
-  const onDragEnd = (result) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     
     const { source, destination, draggableId } = result;
@@ -79,7 +103,7 @@ export default function FluxoPage() {
     atualizarStatusProcesso(draggableId, destination.droppableId);
   };
 
-  const abrirDialogoProcesso = (processo) => {
+  const abrirDialogoProcesso = (processo: ProcessType) => {
     setProcessoSelecionado(processo);
     setAgenteCargas(processo.agenteCargas || "");
     setDialogOpen(true);
@@ -97,7 +121,7 @@ export default function FluxoPage() {
   };
 
   // Controles para scroll horizontal
-  const scrollHorizontal = (direcao) => {
+  const scrollHorizontal = (direcao: 'esquerda' | 'direita') => {
     const container = document.getElementById('kanban-container');
     const scrollAmount = 300; // pixels para scrollar
     
@@ -109,6 +133,14 @@ export default function FluxoPage() {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 h-full flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando processos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 h-full flex flex-col">
@@ -166,48 +198,50 @@ export default function FluxoPage() {
                         className="min-h-full"
                       >
                         {coluna.items.map((item, index) => (
-                          <Draggable
-                            key={item.id}
-                            draggableId={item.id}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <Card
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="mb-2 bg-card hover:bg-accent transition-colors p-3 cursor-pointer"
-                                onClick={() => abrirDialogoProcesso(item)}
-                              >
-                                <div className="text-sm font-medium mb-1">
-                                  {item.referencia}
-                                </div>
-                                <div className="text-xs text-muted-foreground mb-1">
-                                  {item.tipo === "importacao" ? 
-                                    `Importador: ${item.importador || 'N/A'}` : 
-                                    `Exportador: ${item.exportador || 'N/A'}`}
-                                </div>
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-muted-foreground">
-                                    {item.referenciaCliente}
-                                  </span>
-                                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                    item.modal === "maritimo" ? "bg-blue-500/20 text-blue-500" :
-                                    item.modal === "aereo" ? "bg-violet-500/20 text-violet-500" :
-                                    "bg-orange-500/20 text-orange-500"
-                                  }`}>
-                                    {item.modal === "maritimo" ? "Marítimo" :
-                                     item.modal === "aereo" ? "Aéreo" : "Rodoviário"}
-                                  </span>
-                                </div>
-                                {item.agenteCargas && (
-                                  <div className="mt-2 text-xs text-emerald-500">
-                                    Agente: {item.agenteCargas}
+                          item && item.id ? (
+                            <Draggable
+                              key={item.id}
+                              draggableId={item.id}
+                              index={index}
+                            >
+                              {(provided) => (
+                                <Card
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className="mb-2 bg-card hover:bg-accent transition-colors p-3 cursor-pointer"
+                                  onClick={() => abrirDialogoProcesso(item)}
+                                >
+                                  <div className="text-sm font-medium mb-1">
+                                    {item.referencia}
                                   </div>
-                                )}
-                              </Card>
-                            )}
-                          </Draggable>
+                                  <div className="text-xs text-muted-foreground mb-1">
+                                    {item.tipo === "importacao" ? 
+                                      `Importador: ${item.importador || 'N/A'}` : 
+                                      `Exportador: ${item.exportador || 'N/A'}`}
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">
+                                      {item.referenciaCliente}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                      item.modal === "maritimo" ? "bg-blue-500/20 text-blue-500" :
+                                      item.modal === "aereo" ? "bg-violet-500/20 text-violet-500" :
+                                      "bg-orange-500/20 text-orange-500"
+                                    }`}>
+                                      {item.modal === "maritimo" ? "Marítimo" :
+                                       item.modal === "aereo" ? "Aéreo" : "Rodoviário"}
+                                    </span>
+                                  </div>
+                                  {item.agenteCargas && (
+                                    <div className="mt-2 text-xs text-emerald-500">
+                                      Agente: {item.agenteCargas}
+                                    </div>
+                                  )}
+                                </Card>
+                              )}
+                            </Draggable>
+                          ) : null
                         ))}
                         {provided.placeholder}
                       </div>
@@ -282,17 +316,14 @@ export default function FluxoPage() {
                       id="agenteCargas"
                       value={agenteCargas}
                       onChange={(e) => setAgenteCargas(e.target.value)}
-                      className="mt-1"
+                      placeholder="Nome do agente de cargas"
                     />
                   </div>
                 </div>
               </div>
               
-              <div className="flex justify-end pt-2">
-                <Button 
-                  onClick={salvarAgenteCargas} 
-                  className="bg-emerald-700 hover:bg-emerald-600"
-                >
+              <div className="flex justify-end">
+                <Button onClick={salvarAgenteCargas}>
                   Salvar Alterações
                 </Button>
               </div>
