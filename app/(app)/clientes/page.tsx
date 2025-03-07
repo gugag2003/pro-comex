@@ -142,7 +142,7 @@ export default function ClientesPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold text-emerald-500">Clientes</h1>
           <p className="text-muted-foreground">
@@ -161,16 +161,16 @@ export default function ClientesPage() {
         </Button>
       </div>
 
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar clientes..."
-                className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
               />
             </div>
           </div>

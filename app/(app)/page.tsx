@@ -312,68 +312,70 @@ export default function FluxoPage() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-emerald-500">Fluxo</h1>
-          <p className="text-muted-foreground">
-            Gerencie o fluxo dos seus processos
-          </p>
+    <div className="h-screen flex flex-col">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-emerald-500">Fluxo</h1>
+            <p className="text-muted-foreground">
+              Gerencie o fluxo dos seus processos
+            </p>
+          </div>
         </div>
-      </div>
 
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <Tabs
-              value={tipoTab}
-              onValueChange={(value) => setTipoTab(value as "todos" | "importacao" | "exportacao")}
-              className="w-full sm:w-auto"
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="todos">Todos</TabsTrigger>
-                <TabsTrigger value="importacao">Importação</TabsTrigger>
-                <TabsTrigger value="exportacao">Exportação</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="relative flex-1 flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar processos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => scrollHorizontal('esquerda')}
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={() => scrollHorizontal('direita')}
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+        <Card className="mb-1">
+          <CardContent className="p-3">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <Tabs
+                value={tipoTab}
+                onValueChange={(value) => setTipoTab(value as "todos" | "importacao" | "exportacao")}
+                className="w-full sm:w-auto"
+              >
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="todos">Todos</TabsTrigger>
+                  <TabsTrigger value="importacao">Importação</TabsTrigger>
+                  <TabsTrigger value="exportacao">Exportação</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <div className="relative flex-1 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar processos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => scrollHorizontal('esquerda')}
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => scrollHorizontal('direita')}
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden px-6 pb-6">
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <div
             id="kanban-container"
-            className="flex gap-4 overflow-x-auto pb-4 h-full"
+            className="flex gap-4 overflow-x-auto h-full pb-4"
             style={{ 
               scrollbarWidth: 'thin',
               scrollbarColor: '#4b5563 #1f2937',
@@ -382,8 +384,8 @@ export default function FluxoPage() {
           >
             {Object.values(colunasComItems).map((coluna) => (
               <div key={coluna.id} className="flex-shrink-0 w-80 mx-2 first:ml-0 last:mr-0">
-                <Card className="h-full bg-muted/50">
-                  <CardHeader className="py-3 px-4">
+                <Card className="h-full bg-muted/50 flex flex-col">
+                  <CardHeader className="py-3 px-4 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium">
                         {coluna.title}
@@ -393,13 +395,13 @@ export default function FluxoPage() {
                       </span>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 flex-1 overflow-y-auto">
                     <Droppable droppableId={coluna.id}>
                       {(provided) => (
                         <div
                           {...provided.droppableProps}
                           ref={provided.innerRef}
-                          className="min-h-[200px] p-2"
+                          className="min-h-full p-2"
                         >
                           {coluna.items.map((processo, index) => (
                             <Draggable

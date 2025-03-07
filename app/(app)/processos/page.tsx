@@ -222,7 +222,7 @@ export default function ProcessosPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold text-emerald-500">Processos</h1>
           <p className="text-muted-foreground">
@@ -241,27 +241,26 @@ export default function ProcessosPage() {
         </Button>
       </div>
 
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             <Tabs
               value={tipoTab}
               onValueChange={(value) => setTipoTab(value as ProcessoTipo)}
               className="w-full sm:w-auto"
             >
-              <TabsList>
-                <TabsTrigger key="importacao-tab" value="importacao">Importação</TabsTrigger>
-                <TabsTrigger key="exportacao-tab" value="exportacao">Exportação</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="importacao">Importação</TabsTrigger>
+                <TabsTrigger value="exportacao">Exportação</TabsTrigger>
               </TabsList>
             </Tabs>
-            
-            <div className="relative w-full sm:w-64 ml-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar processos..."
-                className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
               />
             </div>
           </div>
