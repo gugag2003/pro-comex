@@ -38,8 +38,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useProcessData } from "@/hooks/useProcessData";
+import { useClientData } from "@/hooks/useClientData";
 import { ProcessType } from "@/types/process";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -60,12 +62,15 @@ interface FormDataType extends Omit<ProcessType, 'id' | 'status' | 'dataCriacao'
 
 export default function ProcessosPage() {
   const { processos, adicionarProcesso, atualizarProcesso, removerProcesso } = useProcessData();
+  const { clientes } = useClientData();
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoTab, setTipoTab] = useState<ProcessoTipo>("importacao");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [modoEdicao, setModoEdicao] = useState(false);
   const [confirmarExclusao, setConfirmarExclusao] = useState(false);
   const [processoParaExcluir, setProcessoParaExcluir] = useState<ProcessType | null>(null);
+  const [adquirenteEImportador, setAdquirenteEImportador] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState<string | null>(null);
   
   // Form states
   const [formData, setFormData] = useState<FormDataType>({
@@ -93,6 +98,8 @@ export default function ProcessosPage() {
       agenteCargas: ""
     });
     setModoEdicao(false);
+    setClienteSelecionado(null);
+    setAdquirenteEImportador(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,6 +112,17 @@ export default function ProcessosPage() {
       setFormData((prev) => ({ ...prev, tipo: value }));
     } else if (name === "modal" && (value === "maritimo" || value === "aereo" || value === "rodoviario")) {
       setFormData((prev) => ({ ...prev, modal: value }));
+    } else if (name === "importador") {
+      const cliente = clientes.find(c => c.id === value);
+      setClienteSelecionado(value);
+      setFormData((prev) => ({
+        ...prev,
+        importador: cliente?.nome || "",
+        adquirente: adquirenteEImportador ? cliente?.nome || "" : prev.adquirente,
+        fornecedor: "" // Resetar fornecedor quando mudar o importador
+      }));
+    } else if (name === "fornecedor") {
+      setFormData((prev) => ({ ...prev, fornecedor: value }));
     }
   };
 
@@ -139,6 +157,11 @@ export default function ProcessosPage() {
     setFormData({
       ...processo,
     });
+    // Encontrar o cliente pelo nome do importador
+    const cliente = clientes.find(c => c.nome === processo.importador);
+    if (cliente) {
+      setClienteSelecionado(cliente.id);
+    }
     setModoEdicao(true);
     setIsDialogOpen(true);
   };
@@ -156,25 +179,26 @@ export default function ProcessosPage() {
     }
   };
 
-  const filteredProcessos = processos
-    .filter((processo) => processo.tipo === tipoTab)
-    .filter((processo) => {
-      if (!searchTerm) return true;
-      
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        processo.referencia.toLowerCase().includes(searchLower) ||
-        processo.referenciaCliente.toLowerCase().includes(searchLower) ||
-        processo.adquirente.toLowerCase().includes(searchLower) ||
-        processo.fornecedor.toLowerCase().includes(searchLower) ||
-        (processo.tipo === "importacao" && processo.importador?.toLowerCase().includes(searchLower)) ||
-        (processo.tipo === "exportacao" && processo.exportador?.toLowerCase().includes(searchLower))
-      );
-    })
-    .sort((a, b) => {
-      // Ordena por data de criação - mais recente primeiro
-      return new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime();
-    });
+  const handleAdquirenteCheckboxChange = (checked: boolean) => {
+    setAdquirenteEImportador(checked);
+    if (checked && clienteSelecionado) {
+      const cliente = clientes.find(c => c.id === clienteSelecionado);
+      setFormData(prev => ({
+        ...prev,
+        adquirente: cliente?.nome || ""
+      }));
+    }
+  };
+
+  const filteredProcessos = processos.filter(processo =>
+    processo.tipo === tipoTab &&
+    (processo.referencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     processo.importador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     processo.exportador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     processo.adquirente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     processo.fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     processo.referenciaCliente.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="p-6">
@@ -349,11 +373,12 @@ export default function ProcessosPage() {
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem key="importacao-select" value="importacao">Importação</SelectItem>
-                      <SelectItem key="exportacao-select" value="exportacao">Exportação</SelectItem>
+                      <SelectItem value="importacao">Importação</SelectItem>
+                      <SelectItem value="exportacao">Exportação</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="modal">Modal</Label>
                   <Select
@@ -365,9 +390,9 @@ export default function ProcessosPage() {
                       <SelectValue placeholder="Selecione o modal" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem key="maritimo-select" value="maritimo">Marítimo</SelectItem>
-                      <SelectItem key="aereo-select" value="aereo">Aéreo</SelectItem>
-                      <SelectItem key="rodoviario-select" value="rodoviario">Rodoviário</SelectItem>
+                      <SelectItem value="maritimo">Marítimo</SelectItem>
+                      <SelectItem value="aereo">Aéreo</SelectItem>
+                      <SelectItem value="rodoviario">Rodoviário</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -387,13 +412,22 @@ export default function ProcessosPage() {
               {formData.tipo === "importacao" ? (
                 <div className="space-y-2">
                   <Label htmlFor="importador">Importador</Label>
-                  <Input
-                    id="importador"
+                  <Select
                     name="importador"
-                    value={formData.importador}
-                    onChange={handleInputChange}
-                    required
-                  />
+                    value={clienteSelecionado || ""}
+                    onValueChange={(value) => handleSelectChange("importador", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o importador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          {cliente.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -415,20 +449,62 @@ export default function ProcessosPage() {
                   name="adquirente"
                   value={formData.adquirente}
                   onChange={handleInputChange}
+                  disabled={adquirenteEImportador}
                   required
                 />
+                {formData.tipo === "importacao" && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Checkbox
+                      id="adquirenteCheckbox"
+                      checked={adquirenteEImportador}
+                      onCheckedChange={handleAdquirenteCheckboxChange}
+                    />
+                    <label
+                      htmlFor="adquirenteCheckbox"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Adquirente é o Importador
+                    </label>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fornecedor">Fornecedor</Label>
-                <Input
-                  id="fornecedor"
-                  name="fornecedor"
-                  value={formData.fornecedor}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              {formData.tipo === "importacao" && clienteSelecionado && (
+                <div className="space-y-2">
+                  <Label htmlFor="fornecedor">Fornecedor</Label>
+                  <Select
+                    name="fornecedor"
+                    value={formData.fornecedor}
+                    onValueChange={(value) => handleSelectChange("fornecedor", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o fornecedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes
+                        .find(c => c.id === clienteSelecionado)
+                        ?.fornecedores.map((fornecedor) => (
+                          <SelectItem key={fornecedor.id} value={fornecedor.nome}>
+                            {fornecedor.nome}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.tipo === "exportacao" && (
+                <div className="space-y-2">
+                  <Label htmlFor="fornecedor">Fornecedor</Label>
+                  <Input
+                    id="fornecedor"
+                    name="fornecedor"
+                    value={formData.fornecedor}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="referenciaCliente">Referência do Cliente</Label>

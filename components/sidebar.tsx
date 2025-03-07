@@ -11,6 +11,7 @@ import {
   Layers,
   Menu,
   User,
+  Users,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -29,6 +30,12 @@ export function Sidebar() {
       icon: <Layers className="w-5 h-5" />,
       href: "/processos",
       active: pathname === "/processos",
+    },
+    {
+      label: "Clientes",
+      icon: <Users className="w-5 h-5" />,
+      href: "/clientes",
+      active: pathname === "/clientes",
     },
   ];
 
@@ -66,7 +73,7 @@ export function Sidebar() {
         ))}
       </div>
 
-      <div className="mt-auto px-2 pb-4">
+      <div className="px-2 py-4">
         <Link
           href="/perfil"
           className={cn(
