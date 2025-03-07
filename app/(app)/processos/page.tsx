@@ -82,7 +82,8 @@ export default function ProcessosPage() {
     fornecedor: "",
     referenciaCliente: "",
     modal: "maritimo",
-    agenteCargas: ""
+    agenteCargas: "",
+    isActive: true
   });
 
   const resetForm = () => {
@@ -95,7 +96,8 @@ export default function ProcessosPage() {
       fornecedor: "",
       referenciaCliente: "",
       modal: "maritimo",
-      agenteCargas: ""
+      agenteCargas: "",
+      isActive: true
     });
     setModoEdicao(false);
     setClienteSelecionado(null);
@@ -121,6 +123,15 @@ export default function ProcessosPage() {
         adquirente: adquirenteEImportador ? cliente?.nome || "" : prev.adquirente,
         fornecedor: "" // Resetar fornecedor quando mudar o importador
       }));
+    } else if (name === "exportador") {
+      const cliente = clientes.find(c => c.id === value);
+      setClienteSelecionado(value);
+      setFormData((prev) => ({
+        ...prev,
+        exportador: cliente?.nome || "",
+        adquirente: adquirenteEImportador ? cliente?.nome || "" : prev.adquirente,
+        fornecedor: "" // Resetar fornecedor quando mudar o exportador
+      }));
     } else if (name === "fornecedor") {
       setFormData((prev) => ({ ...prev, fornecedor: value }));
     }
@@ -135,7 +146,8 @@ export default function ProcessosPage() {
         ...formData,
         id: formData.id,
         status: processoParaExcluir?.status || "aguardando-embarque",
-        dataCriacao: processoParaExcluir?.dataCriacao || new Date().toISOString()
+        dataCriacao: processoParaExcluir?.dataCriacao || new Date().toISOString(),
+        isActive: processoParaExcluir?.status !== "encerrados"
       } as ProcessType);
     } else {
       // Cria um novo processo
@@ -143,7 +155,8 @@ export default function ProcessosPage() {
         ...formData,
         id: `processo-${Date.now()}`,
         status: "aguardando-embarque",
-        dataCriacao: new Date().toISOString()
+        dataCriacao: new Date().toISOString(),
+        isActive: true
       };
       
       adicionarProcesso(novoProcesso);
@@ -185,7 +198,14 @@ export default function ProcessosPage() {
       const cliente = clientes.find(c => c.id === clienteSelecionado);
       setFormData(prev => ({
         ...prev,
-        adquirente: cliente?.nome || ""
+        adquirente: cliente?.nome || "",
+        fornecedor: "" // Resetar fornecedor quando mudar o adquirente
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        adquirente: "",
+        fornecedor: "" // Resetar fornecedor quando mudar o adquirente
       }));
     }
   };
@@ -261,6 +281,7 @@ export default function ProcessosPage() {
                 <TableHead>Fornecedor</TableHead>
                 <TableHead>Referência do Cliente</TableHead>
                 <TableHead>Modal</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -313,6 +334,18 @@ export default function ProcessosPage() {
                         {processo.modal === "maritimo" ? "Marítimo" :
                          processo.modal === "aereo" ? "Aéreo" : "Rodoviário"}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className={`w-2 h-2 rounded-full ${
+                            processo.isActive ? 'bg-emerald-500' : 'bg-red-500'
+                          }`} 
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {processo.isActive ? 'Ativo' : 'Encerrado'}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -432,13 +465,30 @@ export default function ProcessosPage() {
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor="exportador">Exportador</Label>
-                  <Input
-                    id="exportador"
+                  <Select
                     name="exportador"
-                    value={formData.exportador}
-                    onChange={handleInputChange}
-                    required
-                  />
+                    value={clienteSelecionado || ""}
+                    onValueChange={(value) => {
+                      const cliente = clientes.find(c => c.id === value);
+                      setClienteSelecionado(value);
+                      setFormData(prev => ({
+                        ...prev,
+                        exportador: cliente?.nome || "",
+                        adquirente: adquirenteEImportador ? cliente?.nome || "" : prev.adquirente
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o exportador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          {cliente.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -469,6 +519,22 @@ export default function ProcessosPage() {
                 )}
               </div>
 
+              {formData.tipo === "exportacao" && (
+                <div className="flex items-center space-x-2 mt-2">
+                  <Checkbox
+                    id="adquirenteCheckbox"
+                    checked={adquirenteEImportador}
+                    onCheckedChange={handleAdquirenteCheckboxChange}
+                  />
+                  <label
+                    htmlFor="adquirenteCheckbox"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Adquirente é o Exportador
+                  </label>
+                </div>
+              )}
+
               {formData.tipo === "importacao" && clienteSelecionado && (
                 <div className="space-y-2">
                   <Label htmlFor="fornecedor">Fornecedor</Label>
@@ -496,13 +562,24 @@ export default function ProcessosPage() {
               {formData.tipo === "exportacao" && (
                 <div className="space-y-2">
                   <Label htmlFor="fornecedor">Fornecedor</Label>
-                  <Input
-                    id="fornecedor"
+                  <Select
                     name="fornecedor"
                     value={formData.fornecedor}
-                    onChange={handleInputChange}
-                    required
-                  />
+                    onValueChange={(value) => handleSelectChange("fornecedor", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o fornecedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes
+                        .find(c => c.id === clienteSelecionado)
+                        ?.fornecedores.map((fornecedor) => (
+                          <SelectItem key={fornecedor.id} value={fornecedor.nome}>
+                            {fornecedor.nome}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 

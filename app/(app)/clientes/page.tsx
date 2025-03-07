@@ -146,7 +146,7 @@ export default function ClientesPage() {
         <div>
           <h1 className="text-3xl font-bold text-emerald-500">Clientes</h1>
           <p className="text-muted-foreground">
-            Gerencie seus clientes e fornecedores
+            Gerencie clientes e seus fornecedores
           </p>
         </div>
         <Button

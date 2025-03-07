@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProcessData } from "@/hooks/useProcessData";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProcessType } from "@/types/process";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface ColunaType {
   id: string;
@@ -28,11 +38,20 @@ interface ColunasType {
 }
 
 export default function FluxoPage() {
-  const { processos, atualizarStatusProcesso, atualizarProcesso } = useProcessData();
+  const { processos, atualizarStatusProcesso, atualizarProcesso, reordenarProcessos, atualizarStatusEOrdem } = useProcessData();
   const [processoSelecionado, setProcessoSelecionado] = useState<ProcessType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [agenteCargas, setAgenteCargas] = useState("");
   const [loading, setLoading] = useState(true);
+  const [confirmarMudancaStatus, setConfirmarMudancaStatus] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [mudancaStatus, setMudancaStatus] = useState<{
+    processoId: string;
+    origem: string;
+    destino: string;
+    referencia: string;
+    destinationIndex: number;
+  } | null>(null);
 
   useEffect(() => {
     // Aguardar os dados serem carregados
@@ -82,7 +101,21 @@ export default function FluxoPage() {
   // Distribuir os processos nas colunas conforme o status
   const colunasComItems = { ...colunas };
   
-  processos.forEach(processo => {
+  // Filtrar processos baseado no termo de busca
+  const processosFiltrados = processos.filter(processo =>
+    searchTerm === "" || // Se não houver termo de busca, retorna todos
+    processo.referencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    processo.importador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    processo.exportador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    processo.adquirente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    processo.fornecedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    processo.referenciaCliente.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Ordenar processos por ordem antes de distribuir nas colunas
+  const processosOrdenados = [...processosFiltrados].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  
+  processosOrdenados.forEach(processo => {
     const status = processo.status || "aguardando-embarque";
     if (colunasComItems[status]) {
       colunasComItems[status].items.push(processo);
@@ -95,12 +128,36 @@ export default function FluxoPage() {
     const { source, destination, draggableId } = result;
     
     if (source.droppableId === destination.droppableId) {
-      // Moveu dentro da mesma coluna, não precisa atualizar o status
+      // Moveu dentro da mesma coluna, atualizar a ordem
+      reordenarProcessos(draggableId, destination.index, source.droppableId);
       return;
     }
+
+    // Encontra o processo que está sendo movido
+    const processo = processos.find(p => p.id === draggableId);
+    if (!processo) return;
     
-    // Atualiza o status do processo
-    atualizarStatusProcesso(draggableId, destination.droppableId);
+    // Abre o diálogo de confirmação
+    setMudancaStatus({
+      processoId: draggableId,
+      origem: source.droppableId,
+      destino: destination.droppableId,
+      referencia: processo.referencia,
+      destinationIndex: destination.index
+    });
+    setConfirmarMudancaStatus(true);
+  };
+
+  const confirmarMudanca = () => {
+    if (mudancaStatus) {
+      atualizarStatusEOrdem(
+        mudancaStatus.processoId, 
+        mudancaStatus.destino, 
+        mudancaStatus.destinationIndex
+      );
+      setConfirmarMudancaStatus(false);
+      setMudancaStatus(null);
+    }
   };
 
   const abrirDialogoProcesso = (processo: ProcessType) => {
@@ -144,28 +201,39 @@ export default function FluxoPage() {
 
   return (
     <div className="p-6 h-full flex flex-col">
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div>
           <h1 className="text-3xl font-bold text-emerald-500">Fluxo de Processos</h1>
           <p className="text-muted-foreground">
             Gerencie o status dos processos arrastando os cartões entre as colunas
           </p>
         </div>
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => scrollHorizontal('esquerda')}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => scrollHorizontal('direita')}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-4 sm:ml-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Buscar processos..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scrollHorizontal('esquerda')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scrollHorizontal('direita')}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -212,8 +280,16 @@ export default function FluxoPage() {
                                   className="mb-2 bg-card hover:bg-accent transition-colors p-3 cursor-pointer"
                                   onClick={() => abrirDialogoProcesso(item)}
                                 >
-                                  <div className="text-sm font-medium mb-1">
-                                    {item.referencia}
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-medium">
+                                      {item.referencia}
+                                    </span>
+                                    <div 
+                                      className={`w-2 h-2 rounded-full ${
+                                        item.isActive ? 'bg-emerald-500' : 'bg-red-500'
+                                      }`} 
+                                      title={item.isActive ? 'Ativo' : 'Encerrado'}
+                                    />
                                   </div>
                                   <div className="text-xs text-muted-foreground mb-1">
                                     {item.tipo === "importacao" ? 
@@ -331,6 +407,30 @@ export default function FluxoPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de Confirmação de Mudança de Status */}
+      <AlertDialog open={confirmarMudancaStatus} onOpenChange={setConfirmarMudancaStatus}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Alteração</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja mover o processo {mudancaStatus?.referencia} da lista &quot;{
+                colunas[mudancaStatus?.origem || ""]?.title
+              }&quot; para &quot;{
+                colunas[mudancaStatus?.destino || ""]?.title
+              }&quot;?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMudancaStatus(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarMudanca}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

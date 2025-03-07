@@ -11,4 +11,6 @@ export interface ProcessType {
     status: string;
     dataCriacao: string;
     agenteCargas?: string;
+    isActive: boolean;
+    ordem?: number;
 }
